@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI DJ Studio Dashboard</title>
+<style>
+  :root { --bg:#f6f7fb; --card:#fff; --ink:#1b1f2a; --muted:#667; --accent:#5b5bd6; --good:#2e9d5b; --bad:#d64545; --line:#e3e5ee; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12141b; --card:#1b1f2a; --ink:#eceef5; --muted:#9aa; --accent:#8b8bff; --line:#2c3142; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 12px; }
+  h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:end; }
+  label { display:flex; flex-direction:column; font-size:.8rem; color:var(--muted); gap:4px; flex:1 1 180px; }
+  input { padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font:inherit; }
+  button { padding:9px 14px; border:0; border-radius:8px; background:var(--accent); color:#fff; font:inherit; cursor:pointer; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; }
+  .stat { border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .stat b { display:block; font-size:1.4rem; }
+  .stat span { color:var(--muted); font-size:.8rem; }
+  .bars { display:flex; align-items:flex-end; gap:3px; height:120px; border-bottom:1px solid var(--line); }
+  .bar { flex:1; min-width:4px; background:var(--accent); border-radius:3px 3px 0 0; }
+  .bar.pos { background:var(--good); } .bar.neg { background:var(--bad); }
+  .muted { color:var(--muted); } .err { color:var(--bad); }
+  ul { margin:0; padding-left:18px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AI DJ Studio dashboard</h1>
+
+  <section class="card">
+    <div class="row">
+      <label>Email <input id="email" type="email" autocomplete="username"></label>
+      <label>Password <input id="password" type="password" autocomplete="current-password"></label>
+      <label>Lounge id <input id="lounge" placeholder="lg_..."></label>
+      <button id="go">Load</button>
+    </div>
+    <p id="msg" class="muted" role="status"></p>
+  </section>
+
+  <section class="card" id="stats-card" hidden>
+    <h2>Lounge <span id="status" class="muted"></span></h2>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section class="card" id="mood-card" hidden>
+    <h2>Mood over time <span class="muted">(chat sentiment per minute; green = positive, red = negative)</span></h2>
+    <div class="bars" id="bars" aria-label="Sentiment per minute"></div>
+    <p class="muted" id="mood-note"></p>
+  </section>
+
+  <section class="card" id="top-card" hidden>
+    <h2>Most voted tracks</h2>
+    <ul id="top"></ul>
+  </section>
+
+  <section class="card" id="me-card" hidden>
+    <h2>Your listening profile</h2>
+    <p id="taste" class="muted"></p>
+    <h2>Your lounges</h2>
+    <ul id="history"></ul>
+    <h2>Rooms you can rejoin</h2>
+    <ul id="active"></ul>
+  </section>
+
+  <section class="card" id="reco-card" hidden>
+    <h2>Recommended for you</h2>
+    <ul id="reco"></ul>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  let token = null;
+
+  function say(text, isError) {
+    const m = $("msg");
+    m.textContent = text;
+    m.className = isError ? "err" : "muted";
+  }
+
+  async function api(path, options) {
+    const res = await fetch(path, Object.assign({ headers: { "Authorization": "Bearer " + token } }, options));
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error((body.error && body.error.message) || ("Request failed (" + res.status + ")"));
+    }
+    return body;
+  }
+
+  async function login() {
+    const res = await fetch("/api/v1/auth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: $("email").value.trim(), password: $("password").value })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { throw new Error((body.error && body.error.message) || "Login failed."); }
+    token = body.accessToken;
+  }
+
+  function stat(label, value) {
+    const d = document.createElement("div"); d.className = "stat";
+    const b = document.createElement("b"); b.textContent = String(value);
+    const s = document.createElement("span"); s.textContent = label;
+    d.append(b, s);
+    return d;
+  }
+
+  function renderStats(a) {
+    $("status").textContent = "(" + a.status + ")";
+    const box = $("stats"); box.replaceChildren(
+      stat("duration (min)", a.durationSeconds == null ? "-" : Math.round(a.durationSeconds / 60)),
+      stat("peak concurrent", a.peakConcurrent), stat("AI questions", a.aiQuestions),
+      stat("participants", a.participants), stat("online now", a.onlineNow), stat("tracks played", a.tracksPlayed),
+      stat("tracks added", a.queueAdds), stat("votes", a.queueVotes), stat("chat messages", a.chatMessages),
+      stat("avg mood (0-1)", a.sentiment.average), stat("Soundclashes", a.soundclash.battles));
+    $("stats-card").hidden = false;
+  }
+
+  function renderMood(a) {
+    const bars = $("bars"); bars.replaceChildren();
+    a.sentimentTimeline.forEach((b) => {
+      const d = document.createElement("div");
+      d.className = "bar" + (b.average >= 0.6 ? " pos" : b.average <= 0.4 ? " neg" : "");
+      d.style.height = Math.max(4, Math.round(b.average * 100)) + "%";
+      d.title = new Date(b.startMs).toLocaleTimeString() + ": " + b.average + " (" + b.count + " msgs)";
+      bars.appendChild(d);
+    });
+    const s = a.sentiment;
+    $("mood-note").textContent = s.count === 0 ? "No chat yet."
+      : s.positive + " positive, " + s.neutral + " neutral, " + s.negative + " negative messages.";
+    $("mood-card").hidden = false;
+  }
+
+  function renderList(id, items, text) {
+    const ul = $(id); ul.replaceChildren();
+    items.forEach((x) => { const li = document.createElement("li"); li.textContent = text(x); ul.appendChild(li); });
+    if (items.length === 0) { const li = document.createElement("li"); li.className = "muted"; li.textContent = "Nothing yet."; ul.appendChild(li); }
+  }
+
+  $("go").addEventListener("click", async () => {
+    try {
+      say("Loading...");
+      await login();
+      const id = $("lounge").value.trim();
+      if (id) {
+        const a = await api("/api/v1/lounges/" + encodeURIComponent(id) + "/analytics");
+        renderStats(a); renderMood(a);
+        renderList("top", a.topVotedTracks, (t) => t.title + " (" + t.votes + " votes)");
+        $("top-card").hidden = false;
+      }
+      const me = await api("/api/v1/me/dashboard");
+      const tp = me.tasteProfile;
+      $("taste").textContent = tp.tracks === 0 ? "No listening history yet."
+        : tp.tracks + " tracks; BPM " + tp.bpmLow + "-" + tp.bpmHigh + " (avg " + tp.bpmAverage + "); energy " + tp.averageEnergy
+          + "; favourite keys " + tp.topKeys.map((k) => k.key + " (" + Math.round(k.share * 100) + "%)").join(", ");
+      renderList("history", me.lounges, (l) => l.vibeProfile + " - " + (l.hosted ? "hosted" : "attended") + " (" + l.status + ")");
+      renderList("active", me.activeRooms, (a) => a.vibeProfile + " [" + a.loungeId + "] - " + a.onlineNow + " online");
+      $("me-card").hidden = false;
+      const r = await api("/api/v1/recommendations?limit=5");
+      renderList("reco", r.tracks, (t) => t.title + " - " + t.artist + " (" + t.bpm + " BPM, " + t.camelotKey + ", " + t.source.replace("_", " ") + ")");
+      $("reco-card").hidden = false;
+      say("Updated " + new Date().toLocaleTimeString());
+    } catch (e) {
+      say(e.message, true);
+    }
+  });
+})();
+</script>
+</body>
+</html>

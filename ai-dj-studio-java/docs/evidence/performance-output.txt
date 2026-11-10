@@ -1,0 +1,5 @@
+room vote/unvote (200 members, 50 queued): p50=0.007 ms  p95=0.019 ms  p99=0.037 ms  max=7.598 ms
+AI segue match + script (20 candidates): p50=0.016 ms  p95=0.026 ms  p99=0.069 ms  max=3.024 ms
+sentiment classifier: 108361 messages/second (single thread)
+memory per room (40 members, 50 queued tracks): ~22 KB; rooms=500
+passed=4 failed=0

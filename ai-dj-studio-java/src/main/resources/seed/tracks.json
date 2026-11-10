@@ -1,0 +1,83 @@
+[
+  {
+    "id": "t_2001",
+    "title": "Night Drive",
+    "artist": "Nova Circuit",
+    "durationSeconds": 232,
+    "audioAssetUrl": "/media/t_2001.mp3",
+    "acoustic": { "bpm": 124, "camelotKey": "8A", "energy": 0.78, "valence": 0.65 },
+    "timeline": [
+      { "ts": 12, "type": "sample_credit", "text": "Vocal chop sampled from a 1981 soul record." },
+      { "ts": 90, "type": "trivia", "text": "Produced during an all-night session in Berlin." },
+      { "ts": 150, "type": "glossary", "text": "The build-up uses a rising filter sweep over a four-bar snare roll." }
+    ]
+  },
+  {
+    "id": "t_2002",
+    "title": "Glass Harbor",
+    "artist": "Kite & Ember",
+    "durationSeconds": 214,
+    "audioAssetUrl": "/media/t_2002.mp3",
+    "acoustic": { "bpm": 128, "camelotKey": "9A", "energy": 0.84, "valence": 0.72 },
+    "timeline": [
+      { "ts": 20, "type": "sample_credit", "text": "Percussion loop recorded from a harbour crane clanging at dawn." },
+      { "ts": 105, "type": "trivia", "text": "Written as a remix brief that ended up replacing the original." }
+    ]
+  },
+  {
+    "id": "t_2003",
+    "title": "Paper Lanterns",
+    "artist": "Mira Solace",
+    "durationSeconds": 247,
+    "audioAssetUrl": "/media/t_2003.mp3",
+    "acoustic": { "bpm": 120, "camelotKey": "8A", "energy": 0.70, "valence": 0.60 },
+    "timeline": [
+      { "ts": 30, "type": "trivia", "text": "Features a field recording of a night market in Taipei." },
+      { "ts": 140, "type": "glossary", "text": "A breakdown is the stripped-back section where the drums drop out." }
+    ]
+  },
+  {
+    "id": "t_2004",
+    "title": "Low Tide Loops",
+    "artist": "Nova Circuit",
+    "durationSeconds": 301,
+    "audioAssetUrl": "/media/t_2004.mp3",
+    "acoustic": { "bpm": 62, "camelotKey": "7A", "energy": 0.35, "valence": 0.50 },
+    "timeline": [
+      { "ts": 45, "type": "trivia", "text": "Half-time companion to Night Drive; the same chord loop slowed to 62 BPM." }
+    ]
+  },
+  {
+    "id": "t_2005",
+    "title": "Static Bloom",
+    "artist": "Hollow Frequency",
+    "durationSeconds": 198,
+    "audioAssetUrl": "/media/t_2005.mp3",
+    "acoustic": { "bpm": 140, "camelotKey": "3B", "energy": 0.93, "valence": 0.41 },
+    "timeline": [
+      { "ts": 8, "type": "trivia", "text": "Intentionally clashes with most mid-tempo tracks; used as a negative test case." }
+    ]
+  },
+  {
+    "id": "t_2006",
+    "title": "Midnight Relay",
+    "artist": "Hollow Frequency",
+    "durationSeconds": 221,
+    "audioAssetUrl": "/media/t_2006.mp3",
+    "acoustic": { "bpm": 126, "camelotKey": "3A", "energy": 0.74, "valence": 0.55 },
+    "timeline": [
+      { "ts": 60, "type": "trivia", "text": "Tempo-compatible with Night Drive but in a clashing key; a key-clash test case." }
+    ]
+  },
+  {
+    "id": "t_2007",
+    "title": "Sunday Static",
+    "artist": "Mira Solace",
+    "durationSeconds": 265,
+    "audioAssetUrl": "/media/t_2007.mp3",
+    "acoustic": { "bpm": 90, "camelotKey": "8B", "energy": 0.45, "valence": 0.62 },
+    "timeline": [
+      { "ts": 25, "type": "trivia", "text": "Harmonically relative to Night Drive but far too slow; a BPM-clash test case." }
+    ]
+  }
+]

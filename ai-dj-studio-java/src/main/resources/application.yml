@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: ai-dj-studio
+  datasource:
+    # Local MySQL by default; docker-compose overrides these via environment variables.
+    url: ${DB_URL:jdbc:mysql://localhost:3306/djstudio?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:djstudio}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none            # schema is owned by Flyway (src/main/resources/db/migration)
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: always
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+        gateway:
+          include: gateway
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  structured:
+    format:
+      console: ecs               # JSON logs; MDC values (requestId, correlationId) are included
+  level:
+    root: INFO
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:}       # REQUIRED, >= 32 chars, never committed (PRD 10.1)
+    access-token-minutes: ${ACCESS_TOKEN_MINUTES:15}   # must be 1-60
+    refresh-token-days: ${REFRESH_TOKEN_DAYS:7}
+  seed:
+    enabled: ${APP_SEED_ENABLED:false}
+    demo-password: ${SEED_DEMO_PASSWORD:}              # blank -> random, printed once
+  ws:
+    # Comma-separated origins allowed to open a WebSocket (browser Origin check). Empty = same-origin only.
+    allowed-origins: ${WS_ALLOWED_ORIGINS:}
+    presence-grace-ms: 15000       # reconnect inside this window is silent (no duplicate "joined")
+    send-time-limit-ms: 5000       # a client that cannot take a message in 5 s is dropped (slow consumer)
+    send-buffer-bytes: 524288
+    max-message-bytes: 16384
+  ai:
+    enabled: true
+    outro-window-seconds: 20       # AI proposes the next segue when this much of the track is left
+    auto-approve-ms: 10000         # unanswered suggestions are approved automatically after this long
+  soundclash:
+    window-ms: 30000               # how long a Soundclash accepts submissions and votes

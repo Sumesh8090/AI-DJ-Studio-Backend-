@@ -1,0 +1,80 @@
+=== 1. Two sessions join one lounge and the queue reorders live ===
+Online: 4 participants (host, co-DJ, Ana, Bo)
+Host starts the session -> Now Playing: Night Drive; Next Up: Glass Harbor (0 votes)  Paper Lanterns (0 votes)  Static Bloom (0 votes)  Midnight Relay (0 votes)
+Ana and Bo vote for 'Midnight Relay', Ana also for 'Static Bloom'
+Queue now: Midnight Relay (2 votes)  Static Bloom (1 votes)  Glass Harbor (0 votes)  Paper Lanterns (0 votes)
+Ana's last broadcast seq=14, Bo's last broadcast seq=14 -> identical: true
+
+=== 2. RBAC enforced server-side (a listener tries host/co-DJ actions) ===
+Ana promotes a track:      REJECTED [forbidden] Your role does not allow this action.
+Ana kicks Bo:              REJECTED [forbidden] Your role does not allow this action.
+Ana resolves a Soundclash: REJECTED [forbidden] Your role does not allow this action.
+Co-DJ locks the lounge:    REJECTED [forbidden] Your role does not allow this action.
+  JOIN_LOUNGE      listener/co_dj/host/admin: allow    allow    allow    allow    
+  BROWSE_TRACKS    listener/co_dj/host/admin: allow    allow    allow    allow    
+  CREATE_LOUNGE    listener/co_dj/host/admin: -        -        allow    allow    
+  MANAGE_LOUNGE    listener/co_dj/host/admin: -        -        allow    allow    
+  OVERRIDE_QUEUE   listener/co_dj/host/admin: -        allow    allow    allow    
+  RESOLVE_BATTLE   listener/co_dj/host/admin: -        allow    allow    allow    
+  MANAGE_TRACKS    listener/co_dj/host/admin: -        -        -        allow    
+  MANAGE_USERS     listener/co_dj/host/admin: -        -        -        allow    
+
+=== 3. AI DJ segue: acoustic match reasoning, script, grounded Q&A ===
+Current: Night Drive 124 BPM, 8A, energy 0.78. Candidates: all six other seed tracks.
+  rejected Static Bloom: [bpm_out_of_range, key_clash]
+  rejected Midnight Relay: [key_clash]
+  rejected Sunday Static: [bpm_out_of_range]
+  ranked   Paper Lanterns score=0.940  {bpmDeltaPct=3.2, bpmRelation=direct, camelotRelation=identical, energyFit=0.8}
+  ranked   Low Tide Loops score=0.855  {bpmDeltaPct=0.0, bpmRelation=half_time, camelotRelation=adjacent, energyFit=0.85}
+  ranked   Glass Harbor   score=0.798  {bpmDeltaPct=3.2, bpmRelation=direct, camelotRelation=adjacent, energyFit=0.66}
+Selected: Paper Lanterns  (hard rules satisfied: BPM within 8%, Camelot identical)
+Transition script: "Easing from Night Drive into Paper Lanterns: the tempo shifts 124 BPM to 120 BPM. The key stays put (8A to 8A). Energy settles. Features a field recording of a night market in Taipei. A breakdown is the stripped-back section where the drums drop out."
+Grounded in: [evt_t_2003_0, evt_t_2003_1]
+Q: Was anything sampled in this track?
+   A: About Night Drive: Vocal chop sampled from a 1981 soul record.
+   grounded=true citations=[evt_t_2001_0]
+Q: What key is it in?
+   A: About Night Drive: Night Drive is in 8A on the Camelot wheel.
+   grounded=true citations=[track:t_2001:key]
+Q: Who played the drums?
+   A: I don't have anything in the track notes that answers that, so I'd rather not guess.
+   grounded=false citations=[]
+Every candidate the matcher ranked satisfies the rules: true
+
+=== 4. Sentiment shift visibly changes what the AI picks ===
+Same current track and candidates; only the room's mood differs.
+  mood=0.15 trend=-0.2 -> AI picks Low Tide Loops (energy 0.35)
+  mood=0.50 trend=+0.0 -> AI picks Paper Lanterns (energy 0.70)
+  mood=0.90 trend=+0.2 -> AI picks Paper Lanterns (energy 0.70)
+Now the same effect driven by real chat through the room (scripted burst):
+  mood before chat: 0.500
+  "this is boring, skip" -> message score 0.036
+  "ugh not feeling it" -> message score 0.231
+  "so dull honestly" -> message score 0.123
+  "meh, I'm tired" -> message score 0.119
+  mood after a bored burst: 0.206
+  "THIS IS AMAZING 🔥🔥" -> message score 0.998
+  "what a banger!!" -> message score 0.923
+  "love this, turn it up!" -> message score 0.983
+  "yesss best set ever 😍" -> message score 0.995
+  "so good!!" -> message score 0.930
+  "lets go!!! 🎉" -> message score 0.981
+  mood after a hype burst: 0.643 (trend +0.14)
+  AI pick in the bored room: Low Tide Loops; in the hyped room: Paper Lanterns
+
+=== 5. A full Soundclash ===
+Co-DJ opens a Soundclash (30 s window).
+Bo submits 'Static Bloom' (140 BPM, 3B): REJECTED [incompatible_segue] That track breaks the BPM/key rules for a segue from the current track.
+Bo submits 'Glass Harbor' and Ana submits 'Paper Lanterns' (both pass the BPM/key rules).
+Window closes -> winner: Paper Lanterns (votes), tally [{trackId=t_2002, title=Glass Harbor, submittedBy=bo, votes=1}, {trackId=t_2003, title=Paper Lanterns, submittedBy=ana, votes=2}]
+Winner spliced into Next Up at the front: Paper Lanterns (0 votes)  Midnight Relay (2 votes)  Static Bloom (1 votes)  Glass Harbor (0 votes)
+
+=== 6. Host disconnects: deterministic behaviour ===
+Host gone for 16 s -> state=ACTING_HOST, acting host=codj
+Acting host (co-DJ) can still curate: accepted
+Co-DJ also gone -> state=FROZEN
+A listener tries to add a track while frozen: REJECTED [room_frozen] The host is away and no co-DJ is online; the queue is frozen until they return.
+Chat still works while frozen: true
+Host reconnects (inside the same session, no duplicate join announcement for a quick reconnect) -> state=PRESENT
+Queue works again: accepted
+passed=1 failed=0
